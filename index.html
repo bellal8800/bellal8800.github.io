@@ -41,6 +41,11 @@ body.dark{--bg:#000;--card:#1c1c1e;--secondary:#98989d;--text:#fff;--line:#38383
 .search:focus,.sheet-input:focus{transform:scale(1.005)}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
+<style id="no-glass-effect">
+*,*::before,*::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.glass,.glass-card,.glass-effect{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--card)!important}
+.overlay{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+</style>
 </head>
 <body>
 <section id="lockScreen">
