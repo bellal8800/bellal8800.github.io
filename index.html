@@ -41,11 +41,6 @@ body.dark{--bg:#000;--card:#1c1c1e;--secondary:#98989d;--text:#fff;--line:#38383
 .search:focus,.sheet-input:focus{transform:scale(1.005)}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
-<style id="no-glass-effect">
-*,*::before,*::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-.glass,.glass-card,.glass-effect{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--card)!important}
-.overlay{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-</style>
 <style id="trash-style">
 .trash-empty-btn{border:0;background:var(--gray);color:var(--red);border-radius:12px;padding:7px 11px;font-size:13px;font-weight:650}
 .trash-row{display:flex;align-items:center;gap:10px;padding:12px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:0 5px 18px rgba(0,0,0,.04);animation:springIn .45s var(--ios18-spring) both}
@@ -71,6 +66,66 @@ body{ -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
 .sheet,.action-menu{will-change:transform;}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
+<style id="oneui9-style">
+/* One UI 9 inspired: soft surfaces, restrained depth, and focused blur only for overlays. */
+:root{
+  --bg:#f4f6f8;
+  --card:#ffffff;
+  --secondary:#74777c;
+  --text:#17181a;
+  --line:#e4e7eb;
+  --gray:#eef0f3;
+  --shadow:0 4px 16px rgba(0,0,0,.055);
+}
+body.dark{
+  --bg:#101114;
+  --card:#1b1d21;
+  --secondary:#a4a7ad;
+  --text:#f7f7f8;
+  --line:#303238;
+  --gray:#272a2f;
+  --shadow:0 5px 18px rgba(0,0,0,.22);
+}
+body{background:var(--bg);}
+.navbar{background:var(--bg);border-bottom:0;}
+.circle-button,.folder-card,.file-row,.trash-row,.lock-avatar,.key,.cancel-action,.action-box,.sheet{
+  background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+}
+.folder-card,.file-row,.trash-row{border-radius:22px;}
+.search,.sheet-input,.file-icon,.file-button,.handle,.trash-empty-btn,.trash-action{background:var(--gray);}
+.search{border-radius:16px;}
+.fab{box-shadow:0 8px 22px rgba(0,122,255,.22);}
+
+/* One UI-style background depth: blur only when an overlay is actually open. */
+.overlay{
+  background:rgba(18,20,24,.24);
+  -webkit-backdrop-filter:blur(18px) saturate(115%);
+  backdrop-filter:blur(18px) saturate(115%);
+}
+body:not(.dark) .overlay{background:rgba(255,255,255,.38);}
+body.dark .overlay{background:rgba(0,0,0,.42);}
+.sheet{
+  background:color-mix(in srgb,var(--card) 88%,transparent);
+  -webkit-backdrop-filter:blur(24px) saturate(120%);
+  backdrop-filter:blur(24px) saturate(120%);
+  border-bottom:0;
+  border-radius:28px 28px 0 0;
+}
+.action-box,.cancel-action{
+  background:color-mix(in srgb,var(--card) 90%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(120%);
+  backdrop-filter:blur(22px) saturate(120%);
+}
+.action-item{background:transparent;}
+
+/* Softer One UI-like interaction feedback. */
+.key:active,.circle-button:active,.file-button:active,.fab:active{transform:scale(.90);}
+.folder-card:active{transform:scale(.975);}
+.file-row:active{transform:scale(.992);}
+</style>
+
 </head>
 <body>
 <section id="lockScreen">
