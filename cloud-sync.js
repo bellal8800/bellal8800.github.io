@@ -1,3 +1,4 @@
+/* Cloud sync module v2 */
 (function(){
   let sb=null,user=null,busy=false;
   const toast=m=>{if(typeof showToast==='function')showToast(m)};
