@@ -5,13 +5,13 @@
     if(window.supabase){resolve(window.supabase);return}
     const s=document.createElement('script');
     s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-    s.onload=()=>resolve(window.supabase);
+    s.onload=()=>window.supabase?resolve(window.supabase):reject(new Error('Supabase library is unavailable'));
     s.onerror=()=>reject(new Error('Supabase library failed to load'));
     document.head.appendChild(s);
   });
-  let client=null, user=null;
-  const q=(id)=>document.getElementById(id);
-  function toast(m){ if(typeof showToast==='function')showToast(m); else console.log(m); }
+  let client=null,user=null;
+  const q=id=>document.getElementById(id);
+  function toast(m){if(typeof showToast==='function')showToast(m);else alert(m)}
   function addStyles(){
     const st=document.createElement('style');st.textContent=`
       .cloud-status{font-size:11px;color:var(--secondary);margin:5px 18px 0;text-align:right}
@@ -19,45 +19,55 @@
       .cloud-modal{position:fixed;inset:0;z-index:5000;display:flex;align-items:flex-end;background:rgba(0,0,0,.35);backdrop-filter:blur(14px)}
       .cloud-sheet{width:100%;max-width:560px;margin:auto 0 0;padding:12px 18px max(24px,env(safe-area-inset-bottom));border-radius:28px 28px 0 0;background:var(--card);border:1px solid var(--line);animation:sheetUp .45s var(--ios18-spring)}
       .cloud-title{font-size:24px;font-weight:750;margin:8px 0 4px}.cloud-sub{color:var(--secondary);font-size:13px;margin-bottom:15px}
-      .cloud-input{width:100%;height:50px;margin-top:9px;border:0;border-radius:14px;padding:0 14px;background:var(--gray);color:var(--text);outline:0}
-      .cloud-btn{width:100%;height:50px;margin-top:9px;border-radius:14px;background:var(--blue);color:#fff;font-weight:700}.cloud-btn.secondary{background:var(--gray);color:var(--text)}.cloud-link{display:block;text-align:center;margin:13px 0 0;color:var(--blue);font-size:14px}
-    `;document.head.appendChild(st);
+      .cloud-input{width:100%;height:50px;margin-top:9px;border:0;border-radius:14px;padding:0 14px;background:var(--gray);color:var(--text);outline:0;box-sizing:border-box}
+      .cloud-btn{width:100%;height:50px;margin-top:9px;border:0;border-radius:14px;background:var(--blue);color:#fff;font-weight:700}.cloud-btn.secondary{background:var(--gray);color:var(--text)}
+      .cloud-btn:disabled{opacity:.55}.cloud-link{display:block;text-align:center;margin:13px 0 0;color:var(--blue);font-size:14px}.cloud-msg{font-size:13px;line-height:1.4;margin-top:10px;color:var(--secondary);text-align:center}.cloud-msg.error{color:#ff3b30}
+    `;document.head.appendChild(st)
   }
   function status(){
-    let el=q('cloudStatus'); if(!el){el=document.createElement('div');el.id='cloudStatus';el.className='cloud-status';const nav=document.querySelector('.navbar');if(nav)nav.appendChild(el)}
+    let el=q('cloudStatus');if(!el){el=document.createElement('div');el.id='cloudStatus';el.className='cloud-status';const nav=document.querySelector('.navbar');if(nav)nav.appendChild(el)}
     el.innerHTML=user?'<span class="cloud-dot on"></span>Cloud connected':'<span class="cloud-dot"></span>Cloud not connected';
   }
   function openAuth(){
     if(q('cloudModal'))return;
     const box=document.createElement('div');box.id='cloudModal';box.className='cloud-modal';
-    box.innerHTML=`<div class="cloud-sheet" onclick="event.stopPropagation()"><div class="handle"></div><div class="cloud-title">☁️ Cloud Storage</div><div class="cloud-sub">Use your Supabase account to keep files across devices.</div><input id="cloudEmail" class="cloud-input" type="email" placeholder="Email"><input id="cloudPassword" class="cloud-input" type="password" placeholder="Password"><button class="cloud-btn" id="cloudLoginBtn">Sign in</button><button class="cloud-btn secondary" id="cloudSignupBtn">Create account</button><button class="cloud-btn secondary" id="cloudCloseBtn">Close</button><a class="cloud-link" href="javascript:void(0)" id="cloudLogoutBtn">Sign out</a></div>`;
+    box.innerHTML=`<div class="cloud-sheet" onclick="event.stopPropagation()"><div class="handle"></div><div class="cloud-title">☁️ Cloud Storage</div><div class="cloud-sub">Create an account to keep your documents across devices.</div><input id="cloudEmail" class="cloud-input" type="email" autocomplete="email" placeholder="Email address"><input id="cloudPassword" class="cloud-input" type="password" autocomplete="new-password" placeholder="Password (minimum 6 characters)"><button class="cloud-btn" id="cloudLoginBtn">Sign in</button><button class="cloud-btn secondary" id="cloudSignupBtn">Create account</button><div id="cloudMsg" class="cloud-msg"></div><button class="cloud-btn secondary" id="cloudCloseBtn">Close</button><a class="cloud-link" href="javascript:void(0)" id="cloudLogoutBtn">Sign out</a></div>`;
     box.onclick=()=>box.remove();document.body.appendChild(box);
-    q('cloudLoginBtn').onclick=async()=>auth(false);q('cloudSignupBtn').onclick=async()=>auth(true);q('cloudCloseBtn').onclick=()=>box.remove();q('cloudLogoutBtn').onclick=async()=>{await client.auth.signOut();box.remove();toast('Signed out');};
+    q('cloudLoginBtn').onclick=()=>auth(false);q('cloudSignupBtn').onclick=()=>auth(true);q('cloudCloseBtn').onclick=()=>box.remove();q('cloudLogoutBtn').onclick=async()=>{if(client)await client.auth.signOut();box.remove();toast('Signed out')};
   }
+  function setMsg(text,error=false){const el=q('cloudMsg');if(el){el.textContent=text;el.className='cloud-msg'+(error?' error':'')}}
   async function auth(signup){
-    const email=q('cloudEmail').value.trim(),password=q('cloudPassword').value;
-    if(!email||password.length<6){toast('Enter email and a 6+ character password');return}
-    try{const r=signup?await client.auth.signUp({email,password}):await client.auth.signInWithPassword({email,password});if(r.error)throw r.error;if(signup&&!r.data.session){toast('Check your email to confirm the account');return}toast(signup?'Cloud account created':'Cloud connected');q('cloudModal')?.remove();await syncDown();}catch(e){console.error(e);toast(e.message||'Cloud login failed')}
+    const email=(q('cloudEmail')?.value||'').trim(),password=q('cloudPassword')?.value||'';
+    if(!client){setMsg('Cloud is still loading. Please try again.',true);return}
+    if(!email){setMsg('Enter your email address.',true);return}
+    if(password.length<6){setMsg('Password must be at least 6 characters.',true);return}
+    const btn=signup?q('cloudSignupBtn'):q('cloudLoginBtn');if(btn){btn.disabled=true;btn.textContent=signup?'Creating…':'Signing in…'}setMsg('Please wait…');
+    try{
+      let r;
+      if(signup){
+        r=await client.auth.signUp({email,password,options:{emailRedirectTo:window.location.href.split('#')[0]}});
+      }else{
+        r=await client.auth.signInWithPassword({email,password});
+      }
+      if(r.error)throw r.error;
+      if(signup&&!r.data.session){setMsg('Account created. Check your email and tap the confirmation link. Then return to this site and sign in.');toast('Account created — check your email');return}
+      user=r.data.session?.user||null;status();setMsg(signup?'Cloud account created successfully.':'Cloud connected.');toast(signup?'Cloud account created':'Cloud connected');setTimeout(()=>q('cloudModal')?.remove(),500);await syncDown();
+    }catch(e){
+      console.error('Supabase Auth error:',e);setMsg(e?.message||'Account creation failed. Check your email and password.',true);toast(e?.message||'Cloud account failed');
+    }finally{if(btn){btn.disabled=false;btn.textContent=signup?'Create account':'Sign in'}}
   }
   async function init(){
     addStyles();
-    try{const S=await ready;client=S.createClient(SUPABASE_URL,SUPABASE_KEY);const s=await client.auth.getSession();user=s.data.session?.user||null;status();
-      client.auth.onAuthStateChange(async(_event,session)=>{user=session?.user||null;status();if(user)await syncDown();});
+    try{
+      const S=await ready;client=S.createClient(SUPABASE_URL,SUPABASE_KEY);const s=await client.auth.getSession();user=s.data.session?.user||null;status();
+      client.auth.onAuthStateChange(async(_event,session)=>{user=session?.user||null;status();if(user)await syncDown()});
       const nav=document.querySelector('.nav-actions');if(nav&&!q('cloudBtn')){const b=document.createElement('button');b.id='cloudBtn';b.className='circle-button';b.textContent='☁';b.title='Cloud Storage';b.onclick=openAuth;nav.prepend(b)}
       if(user)await syncDown();
     }catch(e){console.error(e);status();}
   }
   async function syncDown(){
     if(!user||!client)return;
-    try{
-      const {data:items,error}=await client.from('document_items').select('*').order('created_at');if(error)throw error;
-      if(!items.length)return;
-      data.folders=items.filter(x=>x.item_type==='folder').map(x=>({id:x.id,name:x.name,parent:x.parent_id,trashed:x.trashed,trashedAt:x.updated_at}));
-      data.files=items.filter(x=>x.item_type==='file').map(x=>({id:x.id,name:x.name,size:x.size_bytes||0,type:x.mime_type||'',parent:x.parent_id,trashed:x.trashed,trashedAt:x.updated_at,objectPath:x.object_path}));
-      saveData();
-      for(const f of data.files){if(f.trashed||!f.objectPath)continue;const {data:blob,error}=await client.storage.from('documents').download(f.objectPath);if(!error&&blob)await saveBlob(f.id,blob);}
-      if(typeof render==='function')render();
-    }catch(e){console.error(e);toast('Cloud sync failed')}
+    try{const {data:items,error}=await client.from('document_items').select('*').order('created_at');if(error)throw error;if(!items.length)return;data.folders=items.filter(x=>x.item_type==='folder').map(x=>({id:x.id,name:x.name,parent:x.parent_id,trashed:x.trashed,trashedAt:x.updated_at}));data.files=items.filter(x=>x.item_type==='file').map(x=>({id:x.id,name:x.name,size:x.size_bytes||0,type:x.mime_type||'',parent:x.parent_id,trashed:x.trashed,trashedAt:x.updated_at,objectPath:x.object_path}));saveData();for(const f of data.files){if(f.trashed||!f.objectPath)continue;const {data:blob,error}=await client.storage.from('documents').download(f.objectPath);if(!error&&blob)await saveBlob(f.id,blob)}if(typeof render==='function')render()}catch(e){console.error(e);toast('Cloud sync failed')}
   }
   async function cloudMeta(item){if(!user)return;const row={id:item.id,user_id:user.id,parent_id:item.parent||null,name:item.name,item_type:item.type==='file'?'file':'folder',mime_type:item.type==='file'?(item.mime_type||item.type||'application/octet-stream'):null,size_bytes:item.size||null,object_path:item.objectPath||null,trashed:!!item.trashed,updated_at:new Date().toISOString()};const {error}=await client.from('document_items').upsert(row);if(error)console.error(error)}
   window.uploadFile=async function(){
@@ -69,7 +79,7 @@
   wrap('createFolder',async()=>{if(!user)return;const latest=data.folders[data.folders.length-1];if(latest)await cloudMeta(latest)});
   wrap('renameFolder',async()=>{if(!user)return;const f=data.folders.find(x=>x.id===selectedFolderId);if(f)await cloudMeta(f)});
   wrap('moveFileToTrash',async(id)=>{if(!user)return;const f=data.files.find(x=>x.id===id);if(f)await cloudMeta(f)});
-  wrap('moveFolderToTrash',async(id)=>{if(!user)return;const fs=data.folders.filter(x=>x.trashed);const ff=data.files.filter(x=>x.trashed);for(const x of [...fs,...ff])await cloudMeta(x)});
+  wrap('moveFolderToTrash',async()=>{if(!user)return;for(const x of [...data.folders.filter(x=>x.trashed),...data.files.filter(x=>x.trashed)])await cloudMeta(x)});
   window.openCloudAuth=openAuth;
   init();
 })();
