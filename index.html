@@ -166,7 +166,7 @@ folders.forEach((folder,index)=>{const card=document.createElement("div");card.c
 fileList.innerHTML="";if(!files.length){fileList.innerHTML='<div class="empty"><div class="empty-icon">📄</div>No files here</div>'}else files.forEach((file,index)=>{const row=document.createElement("div");row.className="file-row";row.style.animationDelay=Math.min(index*.04,.2)+"s";const isImage=/\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)||String(file.type||"").startsWith("image/");const iconHTML=isImage?`<div class="file-icon"><img class="image-file-thumb" alt="" src="${file.previewUrl||""}"></div>`:`<div class="file-icon">${getFileIcon(file.name)}</div>`;row.innerHTML=`${iconHTML}<div class="file-info"><div class="file-name">${escapeHTML(file.name)}</div><div class="file-size">${formatBytes(file.size)}</div></div><button class="file-button download-btn" aria-label="Download">↓</button><button class="file-button delete-btn" aria-label="Delete">🗑</button>`;if(isImage){getBlob(file.id).then(blob=>{const img=row.querySelector(".image-file-thumb");if(img){img.src=URL.createObjectURL(blob);img.onload=()=>URL.revokeObjectURL(img.src)}}).catch(()=>{})}row.querySelector(".file-icon").onclick=()=>openFile(file.id);row.querySelector(".file-info").onclick=()=>openFile(file.id);row.querySelector(".download-btn").onclick=()=>downloadFile(file.id);row.querySelector(".delete-btn").onclick=()=>deleteFile(file.id);
 if(/\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)){
   row.style.cursor='pointer';
-  row.addEventListener('click',e=>{if(e.target.closest('button'))return;openImagePreviewFinal(file.id)});
+  row.addEventListener('click',e=>{if(e.target.closest('button'))return;openImagePreviewDirect(file.id)});
 }fileList.appendChild(row)})}
 function openFolder(id){currentPath.push(id);document.getElementById("searchInput").value="";render();window.scrollTo({top:0,behavior:"smooth"})}function goBack(){currentPath.pop();render();window.scrollTo({top:0,behavior:"smooth"})}
 function showAddMenu(){document.getElementById("actionMenu").classList.remove("hidden")}function hideActionMenu(){document.getElementById("actionMenu").classList.add("hidden")}
@@ -179,7 +179,19 @@ function confirmModal(){const input=document.getElementById("modalInput"),name=i
 function hideModal(){document.getElementById("modal").classList.add("hidden")}function closeModal(event){if(event.target===document.getElementById("modal"))hideModal()}
 function uploadFile(){hideActionMenu();const input=document.createElement("input");input.type="file";input.accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif,image/*";input.multiple=true;input.onchange=async()=>{const files=Array.from(input.files||[]);if(!files.length)return;let count=0;try{const parent=currentPath.length?currentPath[currentPath.length-1]:null;for(const file of files){const id=makeId();await saveBlob(id,file);data.files.push({id,name:file.name,size:file.size,type:file.type,parent,created:Date.now()});count++}saveData();render();showToast(count+(count===1?" file":" files")+" uploaded")}catch(e){console.error(e);saveData();render();showToast("Could not save file")}};input.click()}
 function saveBlob(id,file){return new Promise((resolve,reject)=>{if(!file)return reject(new Error("No file"));if(!fileDB)return reject(new Error("Database unavailable"));const tx=fileDB.transaction("files","readwrite");tx.objectStore("files").put({id,blob:file});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}function getBlob(id){return new Promise((resolve,reject)=>{if(!fileDB)return reject(new Error("Database unavailable"));const tx=fileDB.transaction("files","readonly"),req=tx.objectStore("files").get(id);req.onsuccess=()=>req.result?resolve(req.result.blob):reject(new Error("File not found"));req.onerror=()=>reject(req.error)})}
-async function openFile(id){try{const blob=await getBlob(id),url=URL.createObjectURL(blob);window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){showToast("File not found")}}
+async function openFile(id){
+  const file=data.files.find(f=>f.id===id);
+  if(!file||file.trashed)return;
+  if(/\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)){
+    openImagePreviewDirect(id);
+    return;
+  }
+  try{
+    const blob=await getBlob(id),url=URL.createObjectURL(blob);
+    window.open(url,"_blank");
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){showToast("File not found")}
+}
 async function downloadFile(id){const file=data.files.find(f=>f.id===id);if(!file)return;try{const blob=await getBlob(id),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=file.name;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast("Download started")}catch(e){showToast("File not found")}}
 function deleteFile(id){moveFileToTrash(id)}
 function getFileIcon(name){const lower=name.toLowerCase();if(/\.(jpg|jpeg|png|webp|gif)$/i.test(lower))return"🖼️";if(/\.(xls|xlsx)$/i.test(lower))return"📊";return lower.endsWith(".pdf")?"📕":lower.endsWith(".doc")||lower.endsWith(".docx")?"📘":"📄"}function formatBytes(bytes){if(bytes<1024)return bytes+" B";if(bytes<1024*1024)return(bytes/1024).toFixed(1)+" KB";return(bytes/(1024*1024)).toFixed(1)+" MB"}function escapeHTML(text){return String(text).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;")}
