@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Add iOS 18 animation layer
+      - name: Add iOS 18 animation and remove glass effect
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -41,12 +41,20 @@ jobs:
           </style>'''
           if marker not in s:
               s=s.replace('</head>',css+'\n</head>',1)
-              p.write_text(s,encoding='utf-8')
+          glass_marker='<style id="no-glass-effect">'
+          glass_css='''<style id="no-glass-effect">
+          *,*::before,*::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+          .glass,.glass-card,.glass-effect{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--card)!important}
+          .overlay{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+          </style>'''
+          if glass_marker not in s:
+              s=s.replace('</head>',glass_css+'\n</head>',1)
+          p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit animation update
+      - name: Commit update
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'Add iOS 18 style animations'
+          git diff --cached --quiet || git commit -m 'Remove glass effect'
           git push
