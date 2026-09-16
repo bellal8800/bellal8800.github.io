@@ -1,0 +1,49 @@
+name: Fix file open direct
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fix openFile
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old = '''async function openFile(id){try{const blob=await getBlob(id),url=URL.createObjectURL(blob);window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){showToast("File not found")}}'''
+          new = '''function openFile(id){
+            const win=window.open("about:blank","_blank");
+            if(!win){showToast("Allow pop-ups to open files");return}
+            getBlob(id).then(blob=>{
+              const url=URL.createObjectURL(blob);
+              win.location.href=url;
+              setTimeout(()=>URL.revokeObjectURL(url),60000);
+            }).catch(e=>{
+              console.error(e);
+              try{win.close()}catch(_){ }
+              showToast("File not found");
+            });
+          }'''
+
+          if old not in s:
+              raise SystemExit('old openFile function not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix image and document opening"
+          git push
