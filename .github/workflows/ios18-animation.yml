@@ -1,0 +1,52 @@
+name: Apply iOS 18 Animations
+on:
+  push:
+    paths:
+      - '.github/workflows/ios18-animation.yml'
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add iOS 18 animation layer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='<style id="ios18-animation">'
+          css='''<style id="ios18-animation">
+          :root{--ios18-spring:cubic-bezier(.22,1,.36,1);--ios18-bounce:cubic-bezier(.34,1.56,.64,1)}
+          @keyframes springIn{0%{opacity:0;transform:scale(.94) translateY(18px)}55%{opacity:1;transform:scale(1.012) translateY(-2px)}100%{opacity:1;transform:none}}
+          @keyframes slideIn{0%{opacity:0;transform:translateX(28px) scale(.985)}100%{opacity:1;transform:none}}
+          @keyframes slideBack{0%{opacity:0;transform:translateX(-22px)}100%{opacity:1;transform:none}}
+          @keyframes sheetUp{0%{opacity:0;transform:translateY(100%)}70%{opacity:1;transform:translateY(-7px)}100%{opacity:1;transform:none}}
+          @keyframes pop{0%{opacity:0;transform:scale(.7)}65%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:none}}
+          #app{animation:slideIn .55s var(--ios18-spring)}
+          .lock-avatar,.lock-title,.lock-subtitle{animation-timing-function:var(--ios18-spring)}
+          .pin-dot{transition:transform .28s var(--ios18-bounce),background .2s ease,border-color .2s ease}
+          .pin-dot.active{transform:scale(1.22)}
+          .key,.circle-button,.file-button,.fab,.folder-card,.file-row,.sheet-button,.cancel-action{transition:transform .22s var(--ios18-bounce),background .2s ease,box-shadow .25s var(--ios18-spring)}
+          .key:active,.circle-button:active,.file-button:active,.fab:active{transform:scale(.82)}
+          .folder-card:active{transform:scale(.95)}
+          .file-row:active{transform:scale(.985)}
+          .fab{animation:pop .6s .15s both var(--ios18-bounce)}
+          .sheet{animation:sheetUp .48s var(--ios18-spring)}
+          .action-menu{animation:sheetUp .44s var(--ios18-spring)}
+          .toast{transition:opacity .25s ease,transform .4s var(--ios18-spring)}
+          .search:focus,.sheet-input:focus{transform:scale(1.005)}
+          @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+          </style>'''
+          if marker not in s:
+              s=s.replace('</head>',css+'\n</head>',1)
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit animation update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Add iOS 18 style animations'
+          git push
