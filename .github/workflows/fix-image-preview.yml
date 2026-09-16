@@ -1,0 +1,54 @@
+name: Fix image preview
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch image preview
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='id="image-preview-fix"'
+          if marker in s:
+              print('Image preview already installed')
+              raise SystemExit(0)
+
+          css=r'''\n<style id="image-preview-fix">\n.preview-overlay{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.82);padding:18px;animation:fadeIn .2s ease}.preview-box{position:relative;width:min(96vw,720px);height:min(88vh,720px);display:flex;align-items:center;justify-content:center}.preview-image{max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35)}.preview-close{position:absolute;right:4px;top:4px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);color:#111;font-size:25px;line-height:44px;text-align:center;z-index:2}.preview-name{position:absolute;left:8px;right:55px;top:10px;color:#fff;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 8px #000}.preview-open{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);padding:10px 16px;border-radius:18px;background:rgba(255,255,255,.94);color:#111;font-weight:650}\n.file-openable{cursor:pointer}.file-openable:active{transform:scale(.97)}\n</style>\n'''
+          s=s.replace('</head>',css+'</head>',1)
+
+          old='''row.innerHTML=`<div class="file-icon">${getFileIcon(file.name)}</div>\n<div class="file-info"><div class="file-name">${escapeHTML(file.name)}</div>\n<div class="file-size">${formatBytes(file.size)}</div></div>'''
+          new='''row.innerHTML=`<div class="file-icon file-openable" title="Open">${getFileIcon(file.name)}</div>\n<div class="file-info file-openable"><div class="file-name">${escapeHTML(file.name)}</div>\n<div class="file-size">${formatBytes(file.size)}</div></div>'''
+          if old not in s:
+              print('Target row markup not found; no patch made')
+              raise SystemExit(1)
+          s=s.replace(old,new,1)
+
+          js=r'''\n<script id="image-preview-fix-js">\nfunction previewFile(fileId){\n  const file=data.files.find(f=>f.id===fileId);\n  if(!file || file.trashed) return;\n  const req=indexedDB.open('MyProfileFiles');\n  req.onsuccess=()=>{\n    const db=req.result;\n    let tx;\n    try{tx=db.transaction('files','readonly')}catch(e){showToast('Could not open file');return}\n    const get=tx.objectStore('files').get(fileId);\n    get.onsuccess=()=>{\n      const rec=get.result;\n      const blob=rec && (rec.blob || rec.data || rec.file || rec);\n      if(!(blob instanceof Blob)){showToast('Could not open file');return}\n      const url=URL.createObjectURL(blob);\n      const ext=(file.name.split('.').pop()||'').toLowerCase();\n      if(['jpg','jpeg','png','webp','gif'].includes(ext) || (file.type||'').startsWith('image/')){\n        const ov=document.createElement('div');\n        ov.className='preview-overlay';\n        ov.innerHTML=`<div class="preview-box"><div class="preview-name">${escapeHTML(file.name)}</div><button class="preview-close" aria-label="Close">×</button><img class="preview-image" src="${url}" alt="${escapeHTML(file.name)}"></div>`;\n        ov.onclick=e=>{if(e.target===ov||e.target.classList.contains('preview-close')){URL.revokeObjectURL(url);ov.remove()}};\n        document.body.appendChild(ov);\n      }else{\n        window.open(url,'_blank','noopener');\n        setTimeout(()=>URL.revokeObjectURL(url),60000);\n      }\n    };\n    get.onerror=()=>showToast('Could not open file');\n  };\n  req.onerror=()=>showToast('Could not open file');\n}\n</script>\n'''
+          s=s.replace('</body>',js+'</body>',1)
+
+          needle='''row.querySelector(".delete-btn").onclick=()=>deleteFile(file.id);'''
+          replacement='''row.querySelector(".delete-btn").onclick=()=>deleteFile(file.id);\nrow.querySelector(".file-icon").onclick=()=>previewFile(file.id);\nrow.querySelector(".file-info").onclick=()=>previewFile(file.id);'''
+          if needle not in s:
+              print('Click handler target not found')
+              raise SystemExit(1)
+          s=s.replace(needle,replacement,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Fix opening uploaded images'
+          git push
