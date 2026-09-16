@@ -1,0 +1,51 @@
+name: Repair File Features
+
+on:
+  push:
+    paths:
+      - '.github/workflows/repair-file-features.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Repair visible file features
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Make the upload action clearly cover images and documents.
+          s = s.replace('<button class="action-item" onclick="uploadFile()">📄<span>Upload Document</span></button>', '<button class="action-item" onclick="uploadFile()">📤<span>Upload File / Image</span></button>')
+
+          # Make the Trash button easier to identify.
+          s = s.replace('<button class="circle-button" onclick="openTrash()" aria-label="Trash">🗑</button>', '<button class="circle-button" onclick="openTrash()" aria-label="Trash" title="Trash">🗑</button>')
+
+          # Show a real thumbnail for image files while keeping document icons unchanged.
+          old = 'row.innerHTML=`<div class="file-icon">${getFileIcon(file.name)}</div><div class="file-info"><div class="file-name">${escapeHTML(file.name)}</div><div class="file-size">${formatBytes(file.size)}</div></div><button class="file-button download-btn" aria-label="Download">↓</button><button class="file-button delete-btn" aria-label="Delete">🗑</button>`;'
+          new = 'const isImage=/\\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)||String(file.type||"").startsWith("image/");const iconHTML=isImage?`<div class="file-icon"><img class="image-file-thumb" alt="" src="${file.previewUrl||""}"></div>`:`<div class="file-icon">${getFileIcon(file.name)}</div>`;row.innerHTML=`${iconHTML}<div class="file-info"><div class="file-name">${escapeHTML(file.name)}</div><div class="file-size">${formatBytes(file.size)}</div></div><button class="file-button download-btn" aria-label="Download">↓</button><button class="file-button delete-btn" aria-label="Delete">🗑</button>`;if(isImage){getBlob(file.id).then(blob=>{const img=row.querySelector(".image-file-thumb");if(img){img.src=URL.createObjectURL(blob);img.onload=()=>URL.revokeObjectURL(img.src)}}).catch(()=>{})}'
+          if old in s:
+              s=s.replace(old,new,1)
+
+          # Add a small hint under the upload action only once.
+          if 'id="upload-feature-style"' not in s:
+              marker='</style>\n</head>'
+              extra='<style id="upload-feature-style">.action-item span{font-weight:600}.image-file-thumb{width:48px;height:48px;object-fit:cover;border-radius:13px;display:block;background:var(--gray)}</style>\n'
+              s=s.replace(marker, extra+marker, 1)
+
+          p.write_text(s,encoding='utf-8')
+
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Repair visible upload image and trash features"
+          git push
