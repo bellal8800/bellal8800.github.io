@@ -1,6 +1,8 @@
 name: Enable Supabase Cloud
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/enable-supabase-cloud.yml'
 permissions:
   contents: write
 jobs:
