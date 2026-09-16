@@ -1,0 +1,54 @@
+name: Add Image Upload Support
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-image-upload.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch image upload
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old = '''function uploadFile(){hideActionMenu();const input=document.createElement("input");input.type="file";input.accept=".pdf,.doc,.docx";input.onchange=async()=>{const file=input.files[0];if(!file)return;try{const id=makeId();await saveBlob(id,file);data.files.push({id,name:file.name,size:file.size,type:file.type,parent:currentPath.length?currentPath[currentPath.length-1]:null,created:Date.now()});saveData();render();showToast("Document uploaded")}catch(e){console.error(e);showToast("Could not save file")}};input.click()}'''
+
+          new = '''function uploadFile(){hideActionMenu();const input=document.createElement("input");input.type="file";input.accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif,image/*";input.multiple=true;input.onchange=async()=>{const files=Array.from(input.files||[]);if(!files.length)return;let count=0;try{const parent=currentPath.length?currentPath[currentPath.length-1]:null;for(const file of files){const id=makeId();await saveBlob(id,file);data.files.push({id,name:file.name,size:file.size,type:file.type,parent,created:Date.now()});count++}saveData();render();showToast(count+(count===1?" file":" files")+" uploaded")}catch(e){console.error(e);saveData();render();showToast("Could not save file")}};input.click()}'''
+
+          if old not in s:
+              raise SystemExit('uploadFile function pattern not found')
+          s = s.replace(old, new, 1)
+
+          old_icon = '''function getFileIcon(name){const lower=name.toLowerCase();return lower.endsWith(".pdf")?"📕":lower.endsWith(".doc")||lower.endsWith(".docx")?"📘":"📄"}'''
+          new_icon = '''function getFileIcon(name){const lower=name.toLowerCase();if(/\\.(jpg|jpeg|png|webp|gif)$/i.test(lower))return"🖼️";if(/\\.(xls|xlsx)$/i.test(lower))return"📊";return lower.endsWith(".pdf")?"📕":lower.endsWith(".doc")||lower.endsWith(".docx")?"📘":"📄"}'''
+          if old_icon in s:
+              s=s.replace(old_icon,new_icon,1)
+
+          # Add a small image-preview treatment without changing existing document behavior.
+          marker='''<style id="oneui9-style">'''
+          extra='''<style id="image-preview-style">\n.image-file-thumb{width:48px;height:48px;object-fit:cover;border-radius:13px;display:block;background:var(--gray)}\n</style>\n'''
+          if 'id="image-preview-style"' not in s and marker in s:
+              s=s.replace(marker,extra+marker,1)
+
+          p.write_text(s,encoding='utf-8')
+
+      - name: Commit patched app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Enable image uploads inside folders"
+          git push
