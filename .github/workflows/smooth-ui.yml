@@ -1,0 +1,67 @@
+name: Smooth UI
+
+on:
+  push:
+    paths:
+      - '.github/workflows/smooth-ui.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  smooth-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply smooth UI
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Remove the old glass-control style block entirely.
+          s = re.sub(r'\\n<style id="no-glass-effect">.*?</style>', '', s, flags=re.S)
+
+          smooth = r'''\n<style id="buttery-smooth-ui">
+          *{ -webkit-tap-highlight-color:transparent; }
+          body{ -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+          .navbar{ box-shadow:none!important; }
+          .folder-card,.file-row,.trash-row,.lock-avatar,.key,.circle-button,.cancel-action,.action-box,.sheet{
+            box-shadow:none!important;
+            will-change:transform;
+          }
+          .folder-card,.file-row,.trash-row,.key,.circle-button,.file-button,.fab,.sheet-button,.cancel-action{
+            transition:transform .24s cubic-bezier(.22,1,.36,1),background-color .18s ease,color .18s ease,border-color .18s ease;
+          }
+          .folder-card:active{transform:scale(.975)!important;}
+          .file-row:active{transform:scale(.99)!important;}
+          .key:active,.circle-button:active,.file-button:active,.fab:active{transform:scale(.92)!important;}
+          .search,.sheet-input{transition:background-color .18s ease,box-shadow .22s cubic-bezier(.22,1,.36,1),transform .22s cubic-bezier(.22,1,.36,1);}
+          .search:focus,.sheet-input:focus{transform:none!important;}
+          .overlay{background:rgba(0,0,0,.32)!important;}
+          .sheet,.action-menu{will-change:transform;}
+          @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+          </style>'''
+
+          marker='</head>'
+          if 'id="buttery-smooth-ui"' not in s:
+              s=s.replace(marker, smooth+'\n'+marker, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Make UI buttery smooth and remove glass styling"
+          git push
