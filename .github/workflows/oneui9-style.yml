@@ -1,0 +1,104 @@
+name: One UI 9 Style
+
+on:
+  push:
+    paths:
+      - '.github/workflows/oneui9-style.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  oneui9:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply One UI 9 inspired depth
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Remove the previous global no-glass override.
+          s = re.sub(r'<style id="no-glass-effect">.*?</style>\s*', '', s, flags=re.S)
+
+          style = r'''<style id="oneui9-style">
+          /* One UI 9 inspired: soft surfaces, restrained depth, and focused blur only for overlays. */
+          :root{
+            --bg:#f4f6f8;
+            --card:#ffffff;
+            --secondary:#74777c;
+            --text:#17181a;
+            --line:#e4e7eb;
+            --gray:#eef0f3;
+            --shadow:0 4px 16px rgba(0,0,0,.055);
+          }
+          body.dark{
+            --bg:#101114;
+            --card:#1b1d21;
+            --secondary:#a4a7ad;
+            --text:#f7f7f8;
+            --line:#303238;
+            --gray:#272a2f;
+            --shadow:0 5px 18px rgba(0,0,0,.22);
+          }
+          body{background:var(--bg);}
+          .navbar{background:var(--bg);border-bottom:0;}
+          .circle-button,.folder-card,.file-row,.trash-row,.lock-avatar,.key,.cancel-action,.action-box,.sheet{
+            background:var(--card);
+            border:1px solid var(--line);
+            box-shadow:var(--shadow);
+          }
+          .folder-card,.file-row,.trash-row{border-radius:22px;}
+          .search,.sheet-input,.file-icon,.file-button,.handle,.trash-empty-btn,.trash-action{background:var(--gray);}
+          .search{border-radius:16px;}
+          .fab{box-shadow:0 8px 22px rgba(0,122,255,.22);}
+
+          /* One UI-style background depth: blur only when an overlay is actually open. */
+          .overlay{
+            background:rgba(18,20,24,.24);
+            -webkit-backdrop-filter:blur(18px) saturate(115%);
+            backdrop-filter:blur(18px) saturate(115%);
+          }
+          body:not(.dark) .overlay{background:rgba(255,255,255,.38);}
+          body.dark .overlay{background:rgba(0,0,0,.42);}
+          .sheet{
+            background:color-mix(in srgb,var(--card) 88%,transparent);
+            -webkit-backdrop-filter:blur(24px) saturate(120%);
+            backdrop-filter:blur(24px) saturate(120%);
+            border-bottom:0;
+            border-radius:28px 28px 0 0;
+          }
+          .action-box,.cancel-action{
+            background:color-mix(in srgb,var(--card) 90%,transparent);
+            -webkit-backdrop-filter:blur(22px) saturate(120%);
+            backdrop-filter:blur(22px) saturate(120%);
+          }
+          .action-item{background:transparent;}
+
+          /* Softer One UI-like interaction feedback. */
+          .key:active,.circle-button:active,.file-button:active,.fab:active{transform:scale(.90);}
+          .folder-card:active{transform:scale(.975);}
+          .file-row:active{transform:scale(.992);}
+          </style>
+          '''
+
+          if 'id="oneui9-style"' not in s:
+              s = s.replace('</head>', style + '\n</head>')
+          else:
+              s = re.sub(r'<style id="oneui9-style">.*?</style>', style.strip(), s, flags=re.S)
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Apply One UI 9 inspired UI style"
+          git push
