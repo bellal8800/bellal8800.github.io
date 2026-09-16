@@ -163,7 +163,11 @@ function toggleTheme(){document.body.classList.toggle("dark");localStorage.setIt
 function getCurrentFolder(){if(!currentPath.length)return null;return data.folders.find(f=>f.id===currentPath[currentPath.length-1])||null}
 function render(){const folderGrid=document.getElementById("folderGrid"),fileList=document.getElementById("fileList"),search=document.getElementById("searchInput").value.toLowerCase().trim(),currentFolder=getCurrentFolder(),parent=currentFolder?currentFolder.id:null;let folders=data.folders.filter(f=>f.parent===parent&&!f.trashed),files=data.files.filter(f=>f.parent===parent&&!f.trashed);if(search){folders=data.folders.filter(f=>!f.trashed&&f.name.toLowerCase().includes(search));files=data.files.filter(f=>!f.trashed&&f.name.toLowerCase().includes(search))}document.getElementById("location").textContent=currentFolder?currentFolder.name:"My Profile";document.getElementById("backButton").classList.toggle("hidden",!currentPath.length);document.getElementById("folderCount").textContent=folders.length?folders.length+" items":"";document.getElementById("fileCount").textContent=files.length?files.length+" files":"";folderGrid.innerHTML="";
 folders.forEach((folder,index)=>{const card=document.createElement("div");card.className="folder-card";card.style.animationDelay=Math.min(index*.045,.25)+"s";card.innerHTML=`<button class="more-button" aria-label="Folder menu">⋯</button><div class="folder-open"><div class="folder-icon">📁</div><div class="folder-name">${escapeHTML(folder.name)}</div><div class="folder-meta">Folder</div></div>`;card.querySelector(".more-button").onclick=e=>openFolderMenu(e,folder.id);card.querySelector(".folder-open").onclick=()=>openFolder(folder.id);folderGrid.appendChild(card)});
-fileList.innerHTML="";if(!files.length){fileList.innerHTML='<div class="empty"><div class="empty-icon">📄</div>No files here</div>'}else files.forEach((file,index)=>{const row=document.createElement("div");row.className="file-row";row.style.animationDelay=Math.min(index*.04,.2)+"s";const isImage=/\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)||String(file.type||"").startsWith("image/");const iconHTML=isImage?`<div class="file-icon"><img class="image-file-thumb" alt="" src="${file.previewUrl||""}"></div>`:`<div class="file-icon">${getFileIcon(file.name)}</div>`;row.innerHTML=`${iconHTML}<div class="file-info"><div class="file-name">${escapeHTML(file.name)}</div><div class="file-size">${formatBytes(file.size)}</div></div><button class="file-button download-btn" aria-label="Download">↓</button><button class="file-button delete-btn" aria-label="Delete">🗑</button>`;if(isImage){getBlob(file.id).then(blob=>{const img=row.querySelector(".image-file-thumb");if(img){img.src=URL.createObjectURL(blob);img.onload=()=>URL.revokeObjectURL(img.src)}}).catch(()=>{})}row.querySelector(".file-icon").onclick=()=>openFile(file.id);row.querySelector(".file-info").onclick=()=>openFile(file.id);row.querySelector(".download-btn").onclick=()=>downloadFile(file.id);row.querySelector(".delete-btn").onclick=()=>deleteFile(file.id);fileList.appendChild(row)})}
+fileList.innerHTML="";if(!files.length){fileList.innerHTML='<div class="empty"><div class="empty-icon">📄</div>No files here</div>'}else files.forEach((file,index)=>{const row=document.createElement("div");row.className="file-row";row.style.animationDelay=Math.min(index*.04,.2)+"s";const isImage=/\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)||String(file.type||"").startsWith("image/");const iconHTML=isImage?`<div class="file-icon"><img class="image-file-thumb" alt="" src="${file.previewUrl||""}"></div>`:`<div class="file-icon">${getFileIcon(file.name)}</div>`;row.innerHTML=`${iconHTML}<div class="file-info"><div class="file-name">${escapeHTML(file.name)}</div><div class="file-size">${formatBytes(file.size)}</div></div><button class="file-button download-btn" aria-label="Download">↓</button><button class="file-button delete-btn" aria-label="Delete">🗑</button>`;if(isImage){getBlob(file.id).then(blob=>{const img=row.querySelector(".image-file-thumb");if(img){img.src=URL.createObjectURL(blob);img.onload=()=>URL.revokeObjectURL(img.src)}}).catch(()=>{})}row.querySelector(".file-icon").onclick=()=>openFile(file.id);row.querySelector(".file-info").onclick=()=>openFile(file.id);row.querySelector(".download-btn").onclick=()=>downloadFile(file.id);row.querySelector(".delete-btn").onclick=()=>deleteFile(file.id);
+if(/\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)){
+  row.style.cursor='pointer';
+  row.addEventListener('click',e=>{if(e.target.closest('button'))return;openImagePreviewFinal(file.id)});
+}fileList.appendChild(row)})}
 function openFolder(id){currentPath.push(id);document.getElementById("searchInput").value="";render();window.scrollTo({top:0,behavior:"smooth"})}function goBack(){currentPath.pop();render();window.scrollTo({top:0,behavior:"smooth"})}
 function showAddMenu(){document.getElementById("actionMenu").classList.remove("hidden")}function hideActionMenu(){document.getElementById("actionMenu").classList.add("hidden")}
 function createFolder(){hideActionMenu();modalMode="create";document.getElementById("modalTitle").textContent="New Folder";document.getElementById("modalInput").value="";document.getElementById("modalInput").placeholder="Folder name";document.getElementById("modalConfirm").textContent="Create";document.getElementById("modal").classList.remove("hidden");setTimeout(()=>document.getElementById("modalInput").focus(),180)}
@@ -198,5 +202,42 @@ async function permanentDeleteFolder(id){const folder=data.folders.find(f=>f.id=
 async function emptyTrash(){const tf=trashFiles(),td=trashFolders();if(!tf.length&&!td.length){showToast('Trash is empty');return}if(!confirm('Empty Trash permanently? This cannot be undone.'))return;for(const f of tf)await deleteBlob(f.id);data.files=data.files.filter(f=>!f.trashed);data.folders=data.folders.filter(f=>!f.trashed);saveData();renderTrash();showToast('Trash emptied')}
 function renderTrash(){const folderGrid=document.getElementById('folderGrid'),fileList=document.getElementById('fileList');const folders=trashFolders().filter(f=>!f.parent||data.folders.find(p=>p.id===f.parent&&!p.trashed));const files=trashFiles().filter(f=>!data.folders.find(p=>p.id===f.parent&&p.trashed));document.getElementById('location').textContent='Trash';document.getElementById('backButton').classList.remove('hidden');document.getElementById('backButton').textContent='‹ Back';document.getElementById('backButton').onclick=closeTrash;document.getElementById('folderCount').innerHTML='<button class="trash-empty-btn" onclick="emptyTrash()">Empty Trash</button>';document.getElementById('fileCount').textContent=(folders.length+files.length)?(folders.length+files.length)+' items':'';folderGrid.innerHTML='';fileList.innerHTML='';if(!folders.length)folderGrid.innerHTML='<div class="empty"><div class="empty-icon">🗑️</div>No folders in Trash</div>';folders.forEach((folder,index)=>{const card=document.createElement('div');card.className='trash-row';card.style.animationDelay=Math.min(index*.04,.2)+'s';card.innerHTML='<div class="file-icon">📁</div><div class="trash-info"><div class="trash-name">'+escapeHTML(folder.name)+'</div><div class="trash-meta">Folder • Trash</div></div><div class="trash-actions"><button class="trash-action" onclick="restoreFolder(\''+folder.id+'\')" aria-label="Restore">↩</button><button class="trash-action danger" onclick="permanentDeleteFolder(\''+folder.id+'\')" aria-label="Delete permanently">🗑</button></div>';folderGrid.appendChild(card)});if(!files.length)fileList.innerHTML='<div class="empty"><div class="empty-icon">📄</div>No files in Trash</div>';files.forEach((file,index)=>{const row=document.createElement('div');row.className='trash-row';row.style.animationDelay=Math.min(index*.04,.2)+'s';row.innerHTML='<div class="file-icon">'+getFileIcon(file.name)+'</div><div class="trash-info"><div class="trash-name">'+escapeHTML(file.name)+'</div><div class="trash-meta">'+formatBytes(file.size)+' • Trash</div></div><div class="trash-actions"><button class="trash-action" onclick="restoreFile(\''+file.id+'\')" aria-label="Restore">↩</button><button class="trash-action danger" onclick="permanentDeleteFile(\''+file.id+'\')" aria-label="Delete permanently">🗑</button></div>';fileList.appendChild(row)})}
 </script>
+
+<style id="image-preview-final">
+.image-preview-final{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.94);padding:18px;animation:fadeIn .2s ease}
+.image-preview-final img{max-width:100%;max-height:88vh;object-fit:contain;border-radius:14px}
+.image-preview-final-close{position:absolute;right:16px;top:max(16px,env(safe-area-inset-top));width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:28px;z-index:2}
+</style>
+<script id="image-preview-final-js">
+async function openImagePreviewFinal(id){
+  try{
+    const file=data.files.find(f=>f.id===id);
+    if(!file||file.trashed)return;
+    const blob=await loadBlob(id);
+    if(!blob){showToast('Image not found');return;}
+    const old=document.getElementById('imagePreviewFinal');
+    if(old)old.remove();
+    const url=URL.createObjectURL(blob);
+    const box=document.createElement('div');
+    box.id='imagePreviewFinal';
+    box.className='image-preview-final';
+    const close=document.createElement('button');
+    close.className='image-preview-final-close';
+    close.type='button';
+    close.textContent='×';
+    close.setAttribute('aria-label','Close');
+    const img=document.createElement('img');
+    img.src=url;
+    img.alt=file.name;
+    const closePreview=()=>{URL.revokeObjectURL(url);box.remove()};
+    close.onclick=closePreview;
+    box.onclick=e=>{if(e.target===box)closePreview()};
+    box.appendChild(close);
+    box.appendChild(img);
+    document.body.appendChild(box);
+  }catch(e){console.error(e);showToast('Could not open image')}
+}
+</script>
+
 </body>
 </html>
