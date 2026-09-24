@@ -83,6 +83,5 @@
       ['confirmModal','moveFileToTrash','moveFolderToTrash','restoreFile','restoreFolder','permanentDeleteFile','permanentDeleteFolder','emptyTrash'].forEach(hook);
     }catch(e){console.error('Cloud sync boot error:',e)}
   }
-  setTimeout(addMobileNav,700);
   setTimeout(boot,500);
 })();
