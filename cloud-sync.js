@@ -57,23 +57,6 @@
     const wrapped=function(){const result=original.apply(this,arguments);Promise.resolve(result).then(()=>saveCurrent());return result};
     wrapped.__cloudHook=true;window[name]=wrapped;
   }
-  function addMobileNav(){
-    if(document.getElementById('mobileBottomNav'))return;
-    const style=document.createElement('style');
-    style.textContent=`#mobileBottomNav{position:fixed;left:0;right:0;bottom:0;z-index:4000;display:flex;justify-content:center;padding:8px 16px max(8px,env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -4px 18px rgba(0,0,0,.08)}#mobileBottomNav .mbn-inner{width:100%;max-width:520px;height:58px;display:flex;align-items:center;justify-content:space-around}#mobileBottomNav button{width:31%;height:50px;border-radius:16px;background:transparent;color:var(--secondary);font-size:25px;display:flex;align-items:center;justify-content:center;transition:transform .22s cubic-bezier(.22,1,.36,1),background .18s ease,color .18s ease}#mobileBottomNav button:active{transform:scale(.82);background:var(--gray)}#mobileBottomNav .mbn-home{font-size:24px;color:var(--text)}#mobileBottomNav .mbn-back{font-size:27px}#mobileBottomNav .mbn-label{display:none}@media(min-width:700px){#mobileBottomNav{max-width:560px;left:50%;right:auto;transform:translateX(-50%);border-radius:22px 22px 0 0}}`;
-    document.head.appendChild(style);
-    const nav=document.createElement('nav');nav.id='mobileBottomNav';nav.setAttribute('aria-label','Mobile navigation');
-    nav.innerHTML='<div class="mbn-inner"><button class="mbn-back" type="button" aria-label="Back">‹</button><button class="mbn-home" type="button" aria-label="Home">⌂</button><button type="button" aria-label="Refresh">↻</button></div>';
-    document.body.appendChild(nav);
-    const back=nav.querySelector('.mbn-back'),home=nav.querySelector('.mbn-home'),refresh=nav.querySelectorAll('button')[2];
-    back.onclick=()=>{
-      const visibleBack=[...document.querySelectorAll('.back-button')].find(el=>!el.closest('.hidden')&&getComputedStyle(el).display!=='none');
-      if(visibleBack){visibleBack.click();return}
-      if(history.length>1)history.back();
-    };
-    home.onclick=()=>{window.scrollTo({top:0,behavior:'smooth'});location.href=location.href.split('#')[0];};
-    refresh.onclick=()=>location.reload();
-  }
   async function boot(){
     try{
       sb=await getClient();
