@@ -1,5 +1,9 @@
 /* Cloud sync module v2 + mobile navigation */
 (function(){
+  // Remove any legacy cached bottom navigation immediately.
+  const removeLegacyNav=()=>{const el=document.getElementById('mobileBottomNav');if(el)el.remove()};
+  removeLegacyNav();
+  new MutationObserver(removeLegacyNav).observe(document.documentElement,{childList:true,subtree:true});
   let sb=null,user=null,busy=false;
   const toast=m=>{if(typeof showToast==='function')showToast(m)};
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
