@@ -13,7 +13,55 @@ async function fromCloud(list){data.folders=list.filter(x=>x.item_type==='folder
 async function toCloud(){if(!user||busy)return;busy=true;try{for(const f of data.folders||[])await row(f);for(const f of data.files||[]){if(!f.objectPath){const blob=await getBlob(f.id),path=user.id+'/'+f.id+'/'+f.name;const up=await sb.storage.from('documents').upload(path,blob,{upsert:true,contentType:f.type||'application/octet-stream'});if(up.error)throw up.error;f.objectPath=path}await row(f)}saveData();const remote=await items(),ids=new Set([...(data.folders||[]),...(data.files||[])].map(x=>x.id));for(const old of remote.filter(x=>!ids.has(x.id))){if(old.item_type==='file'&&old.object_path)await sb.storage.from('documents').remove([old.object_path]);const d=await sb.from('document_items').delete().eq('id',old.id);if(d.error)throw d.error}}catch(e){console.error('Cloud save',e);toast('Cloud save failed')}finally{busy=false}}
 async function connect(){if(!user)return;try{const list=await items();if(list.length)await fromCloud(list);else await toCloud();if(typeof render==='function')render()}catch(e){console.error('Cloud sync',e);toast('Cloud sync failed')}}
 function hook(name){const f=window[name];if(typeof f!=='function'||f.__cloud)return;const w=function(){const r=f.apply(this,arguments);Promise.resolve(r).then(()=>toCloud());return r};w.__cloud=true;window[name]=w}
-window.uploadFile=async function(){if(!user){authBox();return}const input=document.createElement('input');input.type='file';input.accept='.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif,image/*';input.multiple=true;input.onchange=async()=>{const fs=Array.from(input.files||[]),parent=currentPath.length?currentPath[currentPath.length-1]:null;if(!fs.length)return;try{for(const file of fs){const id=makeId(),path=user.id+'/'+id+'/'+file.name;const up=await sb.storage.from('documents').upload(path,file,{upsert:true,contentType:file.type||'application/octet-stream'});if(up.error)throw up.error;await saveBlob(id,file);data.files.push({id,name:file.name,size:file.size,type:file.type,parent,objectPath:path,trashed:false})}saveData();render();toast(fs.length+(fs.length===1?' file':' files')+' uploaded to cloud')}catch(e){console.error(e);toast(e?.message||'Cloud upload failed')}};input.click()};
+window.uploadFile=async function(){
+  hideActionMenu();
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif,image/*';
+  input.multiple=true;
+  input.onchange=async()=>{
+    const fs=Array.from(input.files||[]);
+    if(!fs.length)return;
+    const parent=currentPath.length?currentPath[currentPath.length-1]:null;
+    let localCount=0,cloudCount=0,cloudError=null;
+    try{
+      for(const file of fs){
+        const id=makeId();
+        await saveBlob(id,file);
+        const item={id,name:file.name,size:file.size,type:file.type,parent,created:Date.now(),trashed:false};
+        if(user){
+          const path=user.id+'/'+id+'/'+file.name;
+          const up=await sb.storage.from('documents').upload(path,file,{upsert:true,contentType:file.type||'application/octet-stream'});
+          if(up.error){cloudError=up.error;data.files.push(item)}
+          else{
+            item.objectPath=path;
+            await row(item);
+            data.files.push(item);
+            cloudCount++;
+          }
+        }else{
+          data.files.push(item);
+        }
+        localCount++;
+      }
+      saveData();
+      render();
+      if(user&&cloudError){
+        toast(localCount+' file'+(localCount===1?'':'s')+' saved locally; cloud upload failed: '+(cloudError.message||'unknown error'));
+      }else if(user){
+        toast(cloudCount+' file'+(cloudCount===1?'':'s')+' uploaded to cloud');
+      }else{
+        toast(localCount+' file'+(localCount===1?'':'s')+' uploaded');
+      }
+    }catch(e){
+      console.error('Upload error',e);
+      saveData();
+      render();
+      toast(e?.message||'Could not save file');
+    }
+  };
+  input.click();
+};
 async function init(){styles();try{for(let i=0;i<40&&!window.supabase;i++)await wait(250);if(!window.supabase?.createClient)throw new Error('Supabase library unavailable');sb=window.supabase.createClient(U,K);const s=await sb.auth.getSession();user=s.data.session?.user||null;status();const n=document.querySelector('.nav-actions');if(n&&!$('cloudBtn')){const b=document.createElement('button');b.id='cloudBtn';b.className='circle-button';b.type='button';b.textContent='☁';b.title='Cloud Storage';b.onclick=authBox;n.prepend(b)}if(user)await connect();sb.auth.onAuthStateChange((event,session)=>{user=session?.user||null;status();if(user&&(event==='SIGNED_IN'||event==='INITIAL_SESSION'))setTimeout(connect,200)});['confirmModal','moveFileToTrash','moveFolderToTrash','restoreFile','restoreFolder','permanentDeleteFile','permanentDeleteFolder','emptyTrash'].forEach(hook)}catch(e){console.error('Supabase init',e);status()}}
 window.openCloudAuth=authBox;init();
 })();
