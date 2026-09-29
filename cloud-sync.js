@@ -72,25 +72,41 @@
       // Open the tab synchronously while the user's tap is still active.
       const tab=window.open('about:blank','_blank');
       try{
-        const blob=await window.getBlob(id);
-        if(!blob)throw new Error('File not found');
-        const url=URL.createObjectURL(blob);
+        let url=null;
+
+        // Prefer a temporary signed Storage URL. This avoids Android/mobile
+        // problems with blob: PDF viewers and does not require a public bucket.
+        if(file.objectPath){
+          try{
+            const sb=await getCloudClient();
+            const s=await sb.auth.getSession();
+            if(s.data.session?.user){
+              const signed=await sb.storage.from('documents').createSignedUrl(file.objectPath,3600);
+              if(!signed.error&&signed.data?.signedUrl)url=signed.data.signedUrl;
+            }
+          }catch(e){console.warn('Signed URL open fallback',e)}
+        }
+
+        // If cloud URL is unavailable, fall back to the local IndexedDB blob.
+        if(!url){
+          const blob=await window.getBlob(id);
+          if(!blob)throw new Error('File not found');
+          url=URL.createObjectURL(blob);
+        }
 
         if(tab&&!tab.closed){
-          tab.location.replace(url);
-          try{tab.document.title=file.name}catch(e){}
+          tab.location.href=url;
         }else{
-          // Fallback for browsers that refuse the pre-opened tab.
           const a=document.createElement('a');
           a.href=url;
           a.target='_blank';
           a.rel='noopener';
-          a.download='';
           document.body.appendChild(a);
           a.click();
           a.remove();
         }
-        setTimeout(()=>URL.revokeObjectURL(url),60000);
+
+        if(url.startsWith('blob:'))setTimeout(()=>URL.revokeObjectURL(url),60000);
       }catch(e){
         console.error('Open file failed',e);
         if(tab&&!tab.closed)tab.close();
