@@ -432,5 +432,21 @@ async function openImagePreviewDirect(id){
   scroll-behavior:auto!important;
 }
 </style>
+
+<style id="refresh-safe-v5">
+/* Restore normal browser document scrolling and refresh behavior. */
+html,body{
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  height:auto!important;
+  min-height:100%!important;
+  position:static!important;
+}
+#app{
+  min-height:100vh!important;
+  height:auto!important;
+  overflow:visible!important;
+}
+</style>
 </body>
 </html>
