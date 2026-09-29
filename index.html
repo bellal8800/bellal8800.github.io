@@ -154,6 +154,29 @@ html,body{overscroll-behavior-y:none;}
  #backButton.back-button,#fab.fab{position:fixed!important;}
 }
 </style>
+<style id="absolute-viewport-button-lock">
+html,body{overflow-x:hidden!important;}
+#backButton.back-button,#fab.fab{
+  position:fixed!important;
+  top:auto!important;
+  left:auto!important;
+  right:auto!important;
+  transform:none!important;
+  -webkit-transform:none!important;
+  margin:0!important;
+  translate:none!important;
+  offset:none!important;
+  animation:none!important;
+}
+#backButton.back-button{
+  left:22px!important;
+  bottom:calc(23px + env(safe-area-inset-bottom))!important;
+}
+#fab.fab{
+  right:22px!important;
+  bottom:calc(23px + env(safe-area-inset-bottom))!important;
+}
+</style>
 </head>
 <body>
 <section id="lockScreen">
