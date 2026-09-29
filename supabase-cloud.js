@@ -40,7 +40,7 @@ window.uploadFile=async function(){
         const item={id,name:file.name,size:file.size,type:file.type,parent,created:Date.now(),trashed:false};
         await saveBlob(id,file);
         const path=currentUser.id+'/'+id+'/'+file.name;
-        const up=await sb.storage.from('documents').upload(path,file,{upsert:true,contentType:file.type||'application/octet-stream'});
+        const up=await sb.storage.from('documents').upload(path,file,{upsert:false,contentType:file.type||'application/octet-stream'});
         if(up.error) throw new Error('Storage upload failed: '+(up.error.message||'unknown error')+(up.error.statusCode?' [HTTP '+up.error.statusCode+']':''));
         item.objectPath=path;
         try{ await row(item); }catch(e){ await sb.storage.from('documents').remove([path]); throw new Error('Database save failed: '+(e?.message||'unknown error')); }
