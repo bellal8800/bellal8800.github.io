@@ -393,5 +393,11 @@ async function openImagePreviewDirect(id){
   window.addEventListener('load',pin,{once:true});
 })();
 </script>
+
+<style id="scroll-animation-speedup">
+/* Faster scrolling/reveal animations without changing the UI. */
+.folder-card,.file-row,.trash-row{animation-duration:.28s!important;}
+#app{scroll-behavior:auto!important;}
+</style>
 </body>
 </html>
