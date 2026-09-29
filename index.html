@@ -356,5 +356,42 @@ async function openImagePreviewDirect(id){
   window.addEventListener('load',lockFloatingButtons,{once:true});
 })();
 </script>
+
+<style id="viewport-fixed-buttons-v2">
+/* Floating controls: fixed to viewport without locking body/refresh. */
+#backButton.back-button,#fab.fab{
+  position:fixed!important;
+  z-index:99999!important;
+  transform:none!important;
+  -webkit-transform:none!important;
+  animation:none!important;
+  margin:0!important;
+  top:auto!important;
+}
+#backButton.back-button{
+  left:22px!important;
+  right:auto!important;
+  bottom:calc(23px + env(safe-area-inset-bottom))!important;
+}
+#fab.fab{
+  left:auto!important;
+  right:22px!important;
+  bottom:calc(23px + env(safe-area-inset-bottom))!important;
+}
+</style>
+<script id="viewport-fixed-buttons-v2-js">
+(function(){
+  function pin(){
+    ['backButton','fab'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el) return;
+      if(el.parentElement!==document.body) document.body.appendChild(el);
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',pin,{once:true});
+  else pin();
+  window.addEventListener('load',pin,{once:true});
+})();
+</script>
 </body>
 </html>
