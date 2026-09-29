@@ -177,16 +177,6 @@ html,body{overflow-x:hidden!important;}
   bottom:calc(23px + env(safe-area-inset-bottom))!important;
 }
 </style>
-
-<style id="true-screen-scroll-lock">
-/* Keep document itself stationary; only #app scrolls. Floating buttons stay on the real viewport. */
-html,body{width:100%;height:100%;overflow:hidden!important;}
-body{position:fixed!important;inset:0!important;}
-#app{height:100dvh!important;min-height:100dvh!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;}
-#backButton.back-button,#fab.fab{position:fixed!important;z-index:99999!important;}
-#backButton.back-button{left:22px!important;right:auto!important;top:auto!important;bottom:calc(23px + env(safe-area-inset-bottom))!important;}
-#fab.fab{left:auto!important;right:22px!important;top:auto!important;bottom:calc(23px + env(safe-area-inset-bottom))!important;}
-</style>
 </head>
 <body>
 <section id="lockScreen">
