@@ -315,5 +315,23 @@ async function openImagePreviewDirect(id){
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-cloud.js?v=20260930-2"></script>
 <script src="./cloud-sync.js?v=20260930-2"></script>
+<script id="fixed-buttons-lock-js">
+(function(){
+  function lockFloatingButtons(){
+    ['backButton','fab'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el && el.parentElement!==document.body){
+        document.body.appendChild(el);
+      }
+    });
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',lockFloatingButtons,{once:true});
+  }else{
+    lockFloatingButtons();
+  }
+  window.addEventListener('load',lockFloatingButtons,{once:true});
+})();
+</script>
 </body>
 </html>
