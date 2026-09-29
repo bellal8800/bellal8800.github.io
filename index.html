@@ -181,10 +181,30 @@ html,body{overflow-x:hidden!important;}
 /* Keep the viewport-fixed Back button hidden on the lock screen/root page. */
 #backButton.back-button.hidden{display:none!important;}
 </style>
-<style id="scroll-animation-fast-v5">
-/* Make list/card entrance animations extremely fast; scrolling itself stays native. */
-.folder-card,.file-row,.trash-row{animation-duration:.08s!important;animation-delay:0s!important;animation-timing-function:linear!important;}
+<style id="scroll-smooth-final">
+/* Restore the original UI entrance animations. Only page scrolling is made smooth/fast. */
+.folder-card,.file-row,.trash-row{
+  animation-duration:initial!important;
+  animation-delay:initial!important;
+  animation-timing-function:initial!important;
+}
+#app{scroll-behavior:smooth!important;-webkit-overflow-scrolling:touch;}
+html{scroll-behavior:smooth!important;}
 </style>
+<script id="scroll-smooth-final-js">
+(function(){
+  var lastY=window.scrollY||0, ticking=false;
+  function update(){
+    ticking=false;
+    var y=window.scrollY||0;
+    document.documentElement.style.setProperty('--scroll-y',y+'px');
+    lastY=y;
+  }
+  window.addEventListener('scroll',function(){
+    if(!ticking){ticking=true;requestAnimationFrame(update)}
+  },{passive:true});
+})();
+</script>
 </head>
 <body>
 <section id="lockScreen">
