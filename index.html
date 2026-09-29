@@ -181,6 +181,10 @@ html,body{overflow-x:hidden!important;}
 /* Keep the viewport-fixed Back button hidden on the lock screen/root page. */
 #backButton.back-button.hidden{display:none!important;}
 </style>
+<style id="scroll-animation-fast-v5">
+/* Make list/card entrance animations extremely fast; scrolling itself stays native. */
+.folder-card,.file-row,.trash-row{animation-duration:.08s!important;animation-delay:0s!important;animation-timing-function:linear!important;}
+</style>
 </head>
 <body>
 <section id="lockScreen">
