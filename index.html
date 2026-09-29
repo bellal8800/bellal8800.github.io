@@ -205,6 +205,12 @@ html{scroll-behavior:smooth!important;}
   },{passive:true});
 })();
 </script>
+<style id="scroll-butter-v6">
+/* Butter-smooth native scrolling: do not animate/repaint list items while the finger is moving. */
+html,body{scroll-behavior:auto!important;}
+#app{scroll-behavior:auto!important;-webkit-overflow-scrolling:touch;}
+.folder-card,.file-row,.trash-row{will-change:auto!important;}
+</style>
 </head>
 <body>
 <section id="lockScreen">
