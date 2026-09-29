@@ -1,9 +1,9 @@
-/* Compatibility + repair layer.
+/* Cloud compatibility + reliable file opening.
    supabase-cloud.js remains the primary cloud module.
-   This file fixes legacy rows written with item_type=folder and makes mobile opening reliable.
 */
 (function(){
   let tries=0;
+
   async function getCloudClient(){
     for(let i=0;i<40&&!window.supabase;i++)await new Promise(r=>setTimeout(r,250));
     if(!window.supabase?.createClient)throw new Error('Supabase library unavailable');
@@ -16,6 +16,7 @@
     if(!url||!key)throw new Error('Supabase configuration unavailable');
     return window.supabase.createClient(url,key);
   }
+
   async function repairCloud(){
     if(!window.data?.files||typeof window.getBlob!=='function')return;
     try{
@@ -26,22 +27,24 @@
       const q=await sb.from('document_items').select('*').eq('user_id',user.id);
       if(q.error)throw q.error;
       const rows=q.data||[];
+
       for(const f of window.data.files){
         if(f.trashed)continue;
         let row=rows.find(x=>x.id===f.id);
         if(!row&&f.objectPath)row=rows.find(x=>x.object_path===f.objectPath);
         if(!row)continue;
-        if(row.item_type!=='file'||row.mime_type!==f.type||row.size_bytes!==f.size||row.object_path!==f.objectPath){
+        const objectPath=f.objectPath||row.object_path||null;
+        if(row.item_type!=='file'||row.mime_type!==(f.type||'application/octet-stream')||row.size_bytes!==(f.size||0)||row.object_path!==objectPath){
           const up=await sb.from('document_items').upsert({
             id:f.id,user_id:user.id,parent_id:f.parent||null,name:f.name,item_type:'file',
             mime_type:f.type||'application/octet-stream',size_bytes:f.size||0,
-            object_path:f.objectPath||row.object_path||null,trashed:!!f.trashed,
+            object_path:objectPath,trashed:!!f.trashed,
             updated_at:new Date().toISOString()
           },{onConflict:'id'});
           if(up.error)console.warn('Cloud metadata repair failed',up.error);
         }
       }
-      // If the cloud row exists but the browser has no local blob, restore it.
+
       for(const row of rows.filter(x=>x.item_type==='file'&&x.object_path)){
         if(!window.data.files.some(f=>f.id===row.id))continue;
         try{
@@ -53,28 +56,75 @@
       }
     }catch(e){console.warn('Cloud compatibility repair skipped',e)}
   }
+
   function patchOpen(){
-    if(typeof window.getBlob!=='function'||typeof window.openImagePreviewDirect!=='function')return false;
+    if(typeof window.getBlob!=='function')return false;
+
     window.openFile=async function(id){
       const file=(window.data?.files||[]).find(f=>f.id===id);
       if(!file||file.trashed)return;
-      if(/\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)){window.openImagePreviewDirect(id);return}
+
+      if(/\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)){
+        if(typeof window.openImagePreviewDirect==='function')window.openImagePreviewDirect(id);
+        return;
+      }
+
+      // Open the tab synchronously while the user's tap is still active.
       const tab=window.open('about:blank','_blank');
       try{
         const blob=await window.getBlob(id);
         if(!blob)throw new Error('File not found');
         const url=URL.createObjectURL(blob);
-        if(tab&&!tab.closed){tab.location.href=url}
-        else{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}
+
+        if(tab&&!tab.closed){
+          tab.location.replace(url);
+          try{tab.document.title=file.name}catch(e){}
+        }else{
+          // Fallback for browsers that refuse the pre-opened tab.
+          const a=document.createElement('a');
+          a.href=url;
+          a.target='_blank';
+          a.rel='noopener';
+          a.download='';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
         setTimeout(()=>URL.revokeObjectURL(url),60000);
-      }catch(e){if(tab&&!tab.closed)tab.close();if(typeof showToast==='function')showToast('File not found')}
+      }catch(e){
+        console.error('Open file failed',e);
+        if(tab&&!tab.closed)tab.close();
+        if(typeof showToast==='function')showToast('File could not be opened');
+      }
     };
     return true;
   }
+
+  function patchCloudSave(){
+    // Run repair after the primary cloud module has finished an upload/sync.
+    const names=['uploadFile','confirmModal','moveFileToTrash','moveFolderToTrash','restoreFile','restoreFolder','permanentDeleteFile','permanentDeleteFolder','emptyTrash'];
+    for(const name of names){
+      const f=window[name];
+      if(typeof f!=='function'||f.__cloudRepair)return;
+      const w=function(){
+        const result=f.apply(this,arguments);
+        Promise.resolve(result).then(()=>repairCloud()).catch(()=>{});
+        return result;
+      };
+      w.__cloudRepair=true;
+      window[name]=w;
+    }
+  }
+
   const timer=setInterval(async()=>{
     tries++;
-    const ok=patchOpen();
-    if(ok){clearInterval(timer);await repairCloud()}
-    else if(tries>40)clearInterval(timer);
+    const opened=patchOpen();
+    patchCloudSave();
+    if(opened&&tries>2){
+      clearInterval(timer);
+      await repairCloud();
+    }else if(tries>40){
+      clearInterval(timer);
+    }
   },250);
 })();
