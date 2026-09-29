@@ -422,5 +422,15 @@ async function openImagePreviewDirect(id){
 <style id="scroll-animation-fast-v3-active">
 #app.is-scrolling .folder-card,#app.is-scrolling .file-row,#app.is-scrolling .trash-row{animation:none!important;transition:none!important;}
 </style>
+
+<style id="scroll-performance-v4">
+/* Scroll performance: remove per-item entrance animation that can make scrolling feel slow. */
+#app .folder-card,#app .file-row,#app .trash-row{
+  animation:none!important;
+}
+#app{
+  scroll-behavior:auto!important;
+}
+</style>
 </body>
 </html>
