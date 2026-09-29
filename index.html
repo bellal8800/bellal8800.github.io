@@ -399,5 +399,28 @@ async function openImagePreviewDirect(id){
 .folder-card,.file-row,.trash-row{animation-duration:.28s!important;}
 #app{scroll-behavior:auto!important;}
 </style>
+
+<style id="scroll-animation-fast-v3">
+/* Make actual page scroll feel immediate; do not animate cards while scrolling. */
+#app{scroll-behavior:auto!important;}
+#app .folder-card,#app .file-row,#app .trash-row{animation-duration:.16s!important;animation-timing-function:cubic-bezier(.2,.8,.2,1)!important;}
+</style>
+<script id="scroll-animation-fast-v3-js">
+(function(){
+  var scrolling=false,timer;
+  function onScroll(){
+    var app=document.getElementById('app');
+    if(!app)return;
+    if(!scrolling){scrolling=true;app.classList.add('is-scrolling');}
+    clearTimeout(timer);
+    timer=setTimeout(function(){scrolling=false;app.classList.remove('is-scrolling')},90);
+  }
+  var app=document.getElementById('app');
+  if(app)app.addEventListener('scroll',onScroll,{passive:true});
+})();
+</script>
+<style id="scroll-animation-fast-v3-active">
+#app.is-scrolling .folder-card,#app.is-scrolling .file-row,#app.is-scrolling .trash-row{animation:none!important;transition:none!important;}
+</style>
 </body>
 </html>
