@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Footing Punching Shear | 3D Learning Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#131e30;--line:#2a3a52;--text:#e8f0fb;--muted:#a5b4c8;--cyan:#43d9ee;--orange:#ffb454;--red:#ff6377}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#1c3150 0,#0b1220 58%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:1050px;margin:auto;padding:20px 14px 36px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.eyebrow{color:var(--cyan);font-weight:800;letter-spacing:.13em;font-size:.75rem;text-transform:uppercase}h1{font-size:clamp(1.65rem,4vw,2.5rem);line-height:1.12;margin:.3rem 0 .6rem}.sub{color:var(--muted);max-width:720px;margin:0 0 16px}.tag{border:1px solid #38516c;border-radius:999px;padding:6px 10px;color:#c8d8ed;font-size:.78rem}
+.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.8fr);gap:14px}.panel{background:linear-gradient(145deg,#152238ee,#0e1829ee);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 16px 40px #0003}.viewhead{padding:13px 15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}.viewhead strong{font-size:.95rem}.status{color:var(--cyan);font-size:.78rem}
+.stage{height:420px;position:relative;overflow:hidden;display:grid;place-items:center;perspective:900px;background:radial-gradient(ellipse at 50% 56%,#213a58 0,#14253b 38%,#0d1727 76%)}.gridfloor{position:absolute;inset:45% -20% -20%;background-image:linear-gradient(#52708b30 1px,transparent 1px),linear-gradient(90deg,#52708b30 1px,transparent 1px);background-size:28px 28px;transform:rotateX(62deg);transform-origin:top;mask-image:linear-gradient(transparent,#000)}
+.scene{width:330px;height:300px;position:relative;transform-style:preserve-3d;transform:rotateX(57deg) rotateZ(-35deg) scale(.88);transition:transform .15s ease-out}
+.footing{position:absolute;left:25px;top:45px;width:280px;height:225px;background:linear-gradient(135deg,#aab8c7,#7c8fa3);border:2px solid #d1dae4;transform:translateZ(0);box-shadow:9px 10px 0 #51667d,18px 19px 0 #33465d}
+.footing:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 22px,#526b8127 23px 24px),repeating-linear-gradient(90deg,transparent 0 22px,#526b8127 23px 24px)}
+.col{position:absolute;left:119px;top:96px;width:92px;height:92px;background:linear-gradient(135deg,#dce4ed,#9daebe);border:2px solid #f1f5f9;transform:translateZ(8px);box-shadow:6px 7px 0 #687f96}
+.col:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 20px,#7d91a627 21px 22px)}
+.perimeter{position:absolute;left:91px;top:68px;width:148px;height:148px;border:3px dashed var(--cyan);transform:translateZ(13px);filter:drop-shadow(0 0 5px #43d9ee70)}
+.failure{position:absolute;left:86px;top:63px;width:158px;height:158px;border:3px solid var(--red);background:#ff637724;transform:translateZ(2px);clip-path:polygon(19% 19%,81% 19%,100% 100%,0 100%);opacity:0;transition:opacity .3s}
+.failure.on{opacity:.92}
+.rebar{position:absolute;left:42px;top:60px;width:248px;height:195px;border:2px solid #d78c49;transform:translateZ(3px);opacity:.8;background:repeating-linear-gradient(0deg,transparent 0 19px,#b8753c 20px 22px),repeating-linear-gradient(90deg,transparent 0 19px,#b8753c 20px 22px);mask-image:linear-gradient(#000,#000)}
+.loadarrow{position:absolute;left:153px;top:12px;width:4px;height:62px;background:var(--orange);transform:translateZ(60px);box-shadow:0 0 10px #ffb45480;animation:pulse 1.1s infinite alternate}
+.loadarrow:after{content:"";position:absolute;bottom:-1px;left:-7px;border-left:9px solid transparent;border-right:9px solid transparent;border-top:14px solid var(--orange)}
+@keyframes pulse{to{transform:translateZ(42px);opacity:.55}}
+.callout{position:absolute;z-index:2;background:#08111edc;border:1px solid #39536e;border-radius:8px;padding:5px 8px;font-size:.72rem;color:#e7f3ff;backdrop-filter:blur(6px)}
+.c1{top:14px;left:12px}.c2{right:10px;top:45%;color:var(--cyan)}.c3{bottom:13px;left:12px;color:var(--red)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;padding:12px 15px;border-top:1px solid var(--line);color:var(--muted);font-size:.78rem}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}.controls{padding:15px}.controls h2{font-size:1rem;margin:0 0 10px}.control{margin:0 0 15px}.control label{display:flex;justify-content:space-between;gap:8px;color:#c8d5e6;font-size:.84rem;margin-bottom:6px}input[type=range]{width:100%;accent-color:var(--cyan)}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{border:1px solid #3a526f;background:#1a2b43;color:var(--text);padding:10px 11px;border-radius:10px;font-weight:700;cursor:pointer}.btn.primary{background:#0e6978;border-color:#2ab8ca}.btn.active{background:#772d40;border-color:#ff6377}.btn:focus-visible{outline:3px solid #43d9ee}.explain{margin-top:12px;padding:12px;border-radius:12px;background:#0a1423;border:1px solid #273b52;color:#b8c8db;font-size:.84rem;min-height:96px}.explain strong{color:#fff}.note{color:#8fa3bc;font-size:.76rem;margin:13px 2px 0}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.step{padding:13px;border:1px solid var(--line);border-radius:14px;background:#101b2b}.num{font-size:.72rem;color:var(--cyan);font-weight:800;letter-spacing:.1em}.step h3{font-size:.9rem;margin:5px 0}.step p{font-size:.8rem;color:var(--muted);margin:0}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.stage{height:350px}.scene{transform:rotateX(57deg) rotateZ(-35deg) scale(.76)}.steps{grid-template-columns:1fr}.tag{font-size:.72rem}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+ <div class="top"><div><div class="eyebrow">Civil Engineering · Learning Lab</div><h1>Footing Punching Shear</h1></div><span class="tag">Interactive 3D concept · Demo</span></div>
+ <p class="sub">Explore how a column transfers load into an isolated footing and why punching shear is checked around a critical perimeter. Drag the sliders and switch the failure-surface view.</p>
+ <div class="layout">
+  <section class="panel">
+   <div class="viewhead"><strong>3D footing model</strong><span class="status" id="modeStatus">Concept view</span></div>
+   <div class="stage" id="stage" aria-label="Interactive conceptual 3D footing illustration">
+    <div class="gridfloor"></div><span class="callout c1">Column load ↓</span><span class="callout c2">Critical perimeter</span><span class="callout c3">Conceptual failure surface</span>
+    <div class="scene" id="scene" role="img" aria-label="Footing slab with column, critical perimeter and reinforcing grid">
+     <div class="footing"></div><div class="rebar" id="rebar"></div><div class="failure" id="failure"></div><div class="perimeter" id="perimeter"></div><div class="col"></div><div class="loadarrow"></div>
+    </div>
+   </div>
+   <div class="legend"><span><i class="dot" style="background:#43d9ee"></i>Critical perimeter</span><span><i class="dot" style="background:#ff6377"></i>Failure surface (concept)</span><span><i class="dot" style="background:#d78c49"></i>Reinforcement (schematic)</span></div>
+  </section>
+  <aside class="panel controls">
+   <h2>Explore the model</h2>
+   <div class="control"><label for="rotate">Rotate model <span id="rotateVal">−35°</span></label><input id="rotate" type="range" min="-65" max="20" value="-35"></div>
+   <div class="control"><label for="size">Column size (visual) <span id="sizeVal">Medium</span></label><input id="size" type="range" min="0" max="2" value="1"></div>
+   <div class="control"><label for="depth">Footing thickness (visual) <span id="depthVal">Medium</span></label><input id="depth" type="range" min="0" max="2" value="1"></div>
+   <div class="buttons"><button class="btn primary" id="showFailure" type="button" aria-pressed="false">Show failure</button><button class="btn" id="showRebar" type="button" aria-pressed="true">Hide rebar</button><button class="btn" id="loadBtn" type="button">Animate load</button><button class="btn" id="reset" type="button">Reset view</button></div>
+   <div class="explain" id="explain" aria-live="polite"><strong>What to notice:</strong> The column pushes down on the footing. The critical perimeter is the code-defined check boundary around the loaded area. Punching shear is checked along that boundary.</div>
+   <p class="note">This is a conceptual CSS 3D model, not a finite-element simulation. Geometry and sliders are illustrative, not to scale.</p>
+  </aside>
+ </div>
+ <div class="steps">
+  <article class="step"><div class="num">01 · LOAD</div><h3>Column transfers force</h3><p>The column delivers factored load into the footing. Soil reaction supports the footing from below.</p></article>
+  <article class="step"><div class="num">02 · PERIMETER</div><h3>Check around the column</h3><p>The critical section is defined by the applicable design code and footing geometry.</p></article>
+  <article class="step"><div class="num">03 · VERIFY</div><h3>Demand vs capacity</h3><p>Design checks punching-shear demand against design strength, including applicable moment-transfer effects.</p></article>
+ </div>
+ <p class="note">Educational aid only. Do not use this animation alone to size a footing or certify structural safety. Use the applicable code and a qualified engineer's review.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const scene=$('scene'), failure=$('failure'), perimeter=$('perimeter'), col=document.querySelector('.col'), footing=document.querySelector('.footing');
+const explain=$('explain');
+$('rotate').addEventListener('input',e=>{const v=+e.target.value;$('rotateVal').textContent=v+'°';scene.style.transform='rotateX(57deg) rotateZ('+v+'deg) scale(.88)'});
+$('size').addEventListener('input',e=>{const n=+e.target.value;const sizes=[76,92,108];const offsets=[127,119,111];col.style.width=sizes[n]+'px';col.style.height=sizes[n]+'px';col.style.left=offsets[n]+'px';col.style.top=96-(sizes[n]-92)/2+'px';const ps=[132,148,164][n];perimeter.style.width=ps+'px';perimeter.style.height=ps+'px';perimeter.style.left=(165-ps/2)+'px';perimeter.style.top=(142-ps/2)+'px';$('sizeVal').textContent=['Small','Medium','Large'][n];explain.innerHTML='<strong>Column size changed:</strong> This only changes the illustration. In a real check, the loaded area and critical perimeter must be determined from actual dimensions and the governing code.'});
+$('depth').addEventListener('input',e=>{const n=+e.target.value;footing.style.boxShadow=['5px 6px 0 #51667d,10px 12px 0 #33465d','9px 10px 0 #51667d,18px 19px 0 #33465d','13px 15px 0 #51667d,26px 28px 0 #33465d'][n];$('depthVal').textContent=['Thin','Medium','Thick'][n];explain.innerHTML='<strong>Footing thickness changed:</strong> In design, effective depth d affects punching-shear capacity and the location of the critical section. This visual slider is not a design calculation.'});
+$('showFailure').addEventListener('click',()=>{const on=!failure.classList.contains('on');failure.classList.toggle('on',on);$('showFailure').classList.toggle('active',on);$('showFailure').setAttribute('aria-pressed',String(on));$('modeStatus').textContent=on?'Failure surface shown':'Concept view';explain.innerHTML=on?'<strong>Punching failure (concept):</strong> The red surface illustrates a possible inclined failure surface around the column. It is schematic, not a computed crack prediction.':'<strong>Failure surface hidden:</strong> Turn it on to see the conceptual inclined punching surface around the column.'});
+$('showRebar').addEventListener('click',()=>{const hidden=$('rebar').style.opacity==='0';$('rebar').style.opacity=hidden?'.8':'0';$('showRebar').textContent=hidden?'Hide rebar':'Show rebar';$('showRebar').setAttribute('aria-pressed',String(hidden));explain.innerHTML='<strong>Reinforcement view:</strong> The orange grid is schematic reinforcement. It does not indicate a specified bar size or spacing.'});
+$('loadBtn').addEventListener('click',()=>{const a=document.querySelector('.loadarrow');a.animate([{opacity:1,transform:'translateZ(65px)'},{opacity:.45,transform:'translateZ(25px)'},{opacity:1,transform:'translateZ(65px)'}],{duration:800,iterations:3});explain.innerHTML='<strong>Load path:</strong> Column load is balanced by soil reaction. The footing region around the column is checked for punching shear using code-defined demand and capacity procedures.'});
+$('reset').addEventListener('click',()=>{ $('rotate').value=-35;$('rotate').dispatchEvent(new Event('input'));$('size').value=1;$('size').dispatchEvent(new Event('input'));$('depth').value=1;$('depth').dispatchEvent(new Event('input'));failure.classList.remove('on');$('showFailure').classList.remove('active');$('showFailure').setAttribute('aria-pressed','false');$('rebar').style.opacity='.8';$('showRebar').textContent='Hide rebar';$('showRebar').setAttribute('aria-pressed','true');$('modeStatus').textContent='Concept view';explain.innerHTML='<strong>What to notice:</strong> The column pushes down on the footing. The critical perimeter is the code-defined check boundary around the loaded area. Punching shear is checked along that boundary.'});
+</script>
+</body>
+</html>
